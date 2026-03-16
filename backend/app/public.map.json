@@ -1,0 +1,10 @@
+{
+  "endpoints": [
+    "/health",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/docs",
+    "/redoc",
+    "/openapi.json"
+  ]
+}

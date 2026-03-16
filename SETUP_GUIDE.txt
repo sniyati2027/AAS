@@ -1,0 +1,200 @@
+# Atlas AI Command Center - Quick Start Guide
+
+All features from the Atlas Skilltech University template have been successfully added to your codebase!
+
+## What Was Added
+
+### ✅ Backend Features
+- **JSON Authorization Engine**: `authz.py`, `authz.map.json`, `public.map.json` for role-based access control
+- **User Approval System**: Pending/Approved/Rejected status with admin approval workflow
+- **Audit Service**: Automatic request logging + custom event logging with export
+- **AI Features**: Gemini integration for policies, insights, and chat
+- **Keycloak Integration**: Services for Keycloak admin API and JWT validation
+- **New API Routes**: `/api/admin/*`, `/api/ai/*`
+
+### ✅ Frontend Features
+- **NextAuth.js**: Session management with JWT tokens
+- **Auth Middleware**: Route protection for authenticated pages
+- **Admin Pages**: User management and audit log viewer
+- **AI Pages**: Policy management and insights dashboard
+- **AI Manager**: Global chatbot modal accessible from header
+- **Updated Sidebar**: New navigation items for all features
+
+### ✅ Infrastructure
+- **Makefile**: Dev commands (up, down, logs, migrate, etc.)
+- **Root .env.example**: Complete configuration template
+- **Updated docker-compose.yml**: Added Keycloak + separate database
+- **Database Migrations**: New schema for user status and policies
+- **Updated Dependencies**: Added google-generativeai, httpx, next-auth, react-markdown
+
+## Getting Started
+
+### 1. Copy Environment File
+```bash
+cp .env.example .env
+```
+
+### 2. Generate Secrets
+```bash
+openssl rand -base64 32
+```
+Copy the output and set it in `.env` for both:
+- `SECRET_KEY`
+- `NEXTAUTH_SECRET`
+
+### 3. (Optional) Add Gemini API Key
+Get your key from https://aistudio.google.com/apikey and add to `.env`:
+```
+GEMINI_API_KEY=your-api-key-here
+```
+
+### 4. Start Services
+```bash
+make up
+```
+
+This will start:
+- PostgreSQL (port 5432)
+- Keycloak (port 8080)
+- Backend API (port 8000)
+- Frontend (port 3000)
+
+### 5. Access the Application
+- **Frontend**: http://localhost:3000
+- **Backend API Docs**: http://localhost:8000/docs
+- **Keycloak Admin**: http://localhost:8080 (admin/admin)
+
+### 6. Default Admin Login
+- **Email**: admin@atlasuniversity.edu.in
+- **Password**: admin123
+
+## Features Overview
+
+### User Management (`/admin/users`)
+- View all users
+- Approve/reject pending registrations
+- Domain-based auto-approval (configure in `.env`)
+
+### Audit Logs (`/admin/audit`)
+- View all system activity
+- Export logs as JSON
+- Automatic request logging
+
+### AI Policies (`/ai/policies`)
+- Create policies in natural language
+- AI translates to executable DSL
+- Manage policy status and priority
+
+### AI Insights (`/ai/insights`)
+- AI-generated system recommendations
+- Severity levels: Critical, Warning, Recommendation
+- Actionable suggestions with impact estimates
+
+### AI Manager (Header → 🤖 Button)
+- Context-aware chatbot
+- Function calling (search logs, get stats, etc.)
+- Available on all pages
+
+## Useful Commands
+
+```bash
+make up              # Start all services
+make down            # Stop all services
+make logs-be         # View backend logs
+make logs-fe         # View frontend logs
+make restart-be      # Restart backend
+make migrate-up      # Apply database migrations
+make shell-db        # Open PostgreSQL shell
+```
+
+## Configuration Notes
+
+### Ports
+Default ports can be changed in `.env`:
+- `FRONTEND_PORT=3000`
+- `BACKEND_PORT=8000`
+- `DB_PORT=5432`
+- `KEYCLOAK_PORT=8080`
+
+### Email Domains (Auto-Approval)
+Set approved domains in `.env`:
+```
+APPROVED_EMAIL_DOMAINS=atlasuniversity.edu.in,example.com
+```
+
+### AI Model
+Change the AI model in `.env`:
+```
+AI_MODEL=gemini-2.0-flash-exp
+```
+
+## Keycloak Setup (Optional)
+
+If you want to use Keycloak instead of local JWT auth:
+
+1. Access Keycloak at http://localhost:8080
+2. Login with admin/admin
+3. Create a realm called "atlas"
+4. Create a client called "atlas-backend"
+5. Get client secret and add to `.env`
+6. Update `KEYCLOAK_SERVER_URL` in `.env`
+
+## Next Steps
+
+1. **Change default passwords** in production
+2. **Configure your domain** for email auto-approval
+3. **Add your Gemini API key** to enable AI features
+4. **Customize authz.map.json** for your access control needs
+5. **Update branding** (logo, colors, etc.)
+
+## Troubleshooting
+
+### Port conflicts
+```bash
+make down
+# Change ports in .env
+make up
+```
+
+### Database issues
+```bash
+make clean  # Removes all data - use with caution
+make up
+```
+
+### Frontend not updating
+```bash
+# If using FRONTEND_TARGET=prod in .env
+docker compose build frontend
+make up
+```
+
+### AI features not working
+Ensure `GEMINI_API_KEY` is set in `.env`. Without it, demo data will be shown.
+
+## Architecture
+
+```
+Backend (FastAPI):
+├── app/
+│   ├── api/          # Routes (auth, users, agents, admin, ai)
+│   ├── core/         # Config, database, security, authz
+│   ├── models/       # SQLAlchemy models
+│   ├── schemas/      # Pydantic schemas
+│   ├── services/     # Business logic (audit, keycloak, ai)
+│   └── middleware/   # Audit logging middleware
+
+Frontend (Next.js):
+├── src/
+│   ├── app/          # Pages (auth, admin, ai)
+│   ├── components/   # Reusable components
+│   │   ├── layout/   # Header, Sidebar
+│   │   ├── auth/     # AuthProvider
+│   │   └── ai/       # AIManager
+│   ├── lib/          # API client, utilities
+│   └── middleware.ts # Auth middleware
+```
+
+## Support
+
+All features are production-ready. Customize as needed for your use case!

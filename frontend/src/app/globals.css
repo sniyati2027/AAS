@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-bg: #2d1b69;
+  --sidebar-hover: #3d2a7a;
+  --sidebar-active: #4a3580;
+  --accent: #6366f1;
+  --teal: #2ac7c6;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
