@@ -1,6 +1,6 @@
 # Atlas AI Command Centre — Smart Academic Advisor
 
-A university AI platform built on the Atlas AI Command Centre template. Students get personalised course recommendations, career path projections, and an agentic AI advisor that reasons over their live academic data. Supports resume upload with RAG-based analysis.
+A university AI platform built on the Atlas AI Command Centre template. Students get personalised course recommendations, career path projections, and an agentic AI advisor that reasons over their live academic data. Supports resume upload with TF-IDF RAG, persistent memory across sessions, and tool-based agentic reasoning.
 
 ---
 
@@ -12,15 +12,21 @@ The **Smart Academic Advisor** is an AI agent added on top of the Atlas template
 
 When a student asks a question in the chat:
 1. The AI reads the question
-2. It **decides** which tools to call — `get_student_profile`, `get_available_courses`, `search_resume`, `get_career_info`
+2. It **decides** which tools to call — `get_student_profile`, `get_available_courses`, `search_resume`, `get_chat_history`
 3. Tools fetch live data from PostgreSQL
 4. The AI reasons over the results and gives a personalised answer
+5. The conversation is saved to the database for future sessions
 
 When a student uploads a resume:
 1. PDF text is extracted and split into 300-word chunks
-2. Chunks are stored in the `resume_chunks` table in PostgreSQL
+2. TF-IDF vectors are computed for each chunk and stored in PostgreSQL
 3. When the student asks about their resume, the AI calls `search_resume`
-4. Relevant chunks are retrieved and the AI reasons over them — this is RAG
+4. Cosine similarity retrieves the most relevant chunks — this is RAG
+
+When a student returns for a new session:
+1. Previous conversations are loaded from the `chat_messages` table
+2. Last 6 messages are passed as context to every new message
+3. The AI can reference previous discussions naturally
 
 ---
 
@@ -29,9 +35,10 @@ When a student uploads a resume:
 | Feature | Description |
 |---|---|
 | **Agentic Chat** | AI calls tools to fetch live data — never pre-loaded |
+| **Persistent Memory** | Chat history stored in PostgreSQL, loaded on every new session |
 | **Course Recommendations** | AI recommends next semester courses based on actual profile |
 | **Career Path** | AI generates career roadmap with skill gaps and action steps |
-| **Resume RAG** | Upload a PDF resume, AI stores and retrieves chunks intelligently |
+| **Resume RAG** | PDF chunked, TF-IDF vectorised, semantically searched via cosine similarity |
 | **Student Login** | Students log in with university email and password |
 | **Admin View** | Staff can select any student and view their full profile |
 | **At-Risk Detection** | Students with CGPA below 6 or 3+ backlogs are automatically flagged |
@@ -106,6 +113,7 @@ This creates 60 students across 3 departments with realistic profiles, courses, 
 | Frontend | Next.js 14 + React + TypeScript |
 | Database | PostgreSQL 15 |
 | AI | Groq API — LLaMA 3 (free tier) |
+| RAG | TF-IDF vectorisation + cosine similarity |
 | ORM | SQLAlchemy async |
 | Auth | JSON-based RBAC via authz.map.json |
 | Infrastructure | Docker + Docker Compose (5 containers) |
@@ -120,8 +128,8 @@ The AI has 4 tools. It decides when to call them based on the question.
 |---|---|
 | `get_student_profile` | CGPA, semester, department, all courses with grades, backlogs, career goal |
 | `get_available_courses` | Courses in student's department not yet completed |
-| `search_resume` | Relevant chunks from the student's stored resume |
-| `get_career_info` | Career path context based on goal and department |
+| `search_resume` | Relevant chunks from the student's stored resume using TF-IDF cosine similarity |
+| `get_chat_history` | Last 6 messages from previous sessions for memory continuity |
 
 ---
 
@@ -133,7 +141,8 @@ The AI has 4 tools. It decides when to call them based on the question.
 | `courses` | 12 courses with semester, credits, prerequisites, career tags |
 | `student_profiles` | CGPA, semester, backlogs, career goal, at-risk flag |
 | `course_enrollments` | Student-course links with grades and status |
-| `resume_chunks` | Chunked resume text per student for RAG retrieval |
+| `resume_chunks` | Chunked resume text + TF-IDF vectors per student |
+| `chat_messages` | Full conversation history per student with timestamps |
 | `users` | Login credentials for all students and admin |
 | `audit_logs` | Automatic log of every API request |
 | `policies` | AI-generated access control policies |
@@ -150,7 +159,8 @@ The AI has 4 tools. It decides when to call them based on the question.
 | GET | `/api/academic/career-path/{id}` | AI career path projection |
 | POST | `/api/academic/chat` | Agentic chat — AI calls tools internally |
 | POST | `/api/academic/student-login` | Login with email + password |
-| POST | `/api/academic/upload-resume/{id}` | Upload and chunk a resume PDF |
+| POST | `/api/academic/upload-resume/{id}` | Upload, chunk and TF-IDF index a resume PDF |
+| GET | `/api/academic/chat-history/{id}` | Stored conversation history |
 | POST | `/api/academic/seed` | Seed demo data |
 
 ---
@@ -167,7 +177,7 @@ AAS/
 │   │   │   ├── admin.py           ← User management, audit logs (template)
 │   │   │   └── auth.py            ← Login / register (template)
 │   │   ├── models/
-│   │   │   ├── academic.py        ← Department, Course, Student, Enrollment, ResumeChunk
+│   │   │   ├── academic.py        ← Department, Course, Student, Enrollment, ResumeChunk, ChatMessage
 │   │   │   └── user.py            ← User model (template)
 │   │   ├── schemas/
 │   │   │   └── academic_schema.py ← Request/response models
@@ -183,7 +193,7 @@ AAS/
 │       │   └── academic/
 │       │       ├── page.tsx        ← Student dashboard + login
 │       │       └── advisor/
-│       │           └── page.tsx    ← Agentic chat + resume upload
+│       │           └── page.tsx    ← Agentic chat + resume upload + history
 │       └── components/layout/
 │           └── Sidebar.tsx         ← Navigation
 │
@@ -235,8 +245,11 @@ The seed creates:
 | Backend container not starting | Run `docker compose logs backend` to see the error |
 | Seeding failed | Backend may have crashed — check logs |
 | AI not responding | Check `GROQ_API_KEY` is set correctly in `.env` |
+| 429 Too Many Requests | Groq rate limit — wait 30 seconds and retry |
 | Port already in use | Run `docker stop $(docker ps -aq)` then `docker compose up --build` |
 | Student login failing | Make sure you seeded the database first |
+| Resume search not working | Run `ALTER TABLE resume_chunks ADD COLUMN IF NOT EXISTS tfidf_vector TEXT;` in psql |
+| Chat history not loading | Add `/api/academic/chat-history/{student_id}` to `authz.map.json` |
 | Frontend not updating | Run `docker compose down` then `docker compose up --build` |
 
 ---
