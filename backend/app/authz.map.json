@@ -12,5 +12,6 @@
   "/api/academic/career-path/{student_id}": { "GET": ["ADMIN", "DEVELOPER", "USER"] },
   "/api/academic/chat": { "POST": ["ADMIN", "DEVELOPER", "USER"] },
   "/api/academic/seed": { "POST": ["ADMIN", "DEVELOPER", "USER"] },
-  "/api/academic/upload-resume/{student_id}": { "POST": ["ADMIN", "DEVELOPER", "USER"] }
+  "/api/academic/upload-resume/{student_id}": { "POST": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/academic/chat-history/{student_id}": { "GET": ["ADMIN", "DEVELOPER", "USER"] }
 }

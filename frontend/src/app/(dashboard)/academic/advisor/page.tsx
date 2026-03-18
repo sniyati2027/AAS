@@ -22,9 +22,11 @@ export default function AdvisorPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [resumeUploaded, setResumeUploaded] = useState(false);
   const [resumeName, setResumeName] = useState('');
   const [resumeUploading, setResumeUploading] = useState(false);
+  const [hasHistory, setHasHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,13 +40,33 @@ export default function AdvisorPage() {
   ];
 
   useEffect(() => {
-    const sid = studentId || JSON.parse(sessionStorage.getItem('student_profile') || '{}')?.id;
-    if (sid) {
-      fetchWithAuth(`/api/academic/profile/${sid}`)
-        .then((r) => r.json())
-        .then(setProfile)
-        .catch(() => {});
+    const saved = sessionStorage.getItem('student_profile');
+    const savedProfile = saved ? JSON.parse(saved) : null;
+    const sid = studentId || savedProfile?.id;
+
+    if (!sid) {
+      setHistoryLoading(false);
+      return;
     }
+
+    Promise.all([
+      fetchWithAuth(`/api/academic/profile/${sid}`).then(r => r.json()),
+      fetchWithAuth(`/api/academic/chat-history/${sid}`).then(r => r.json()),
+    ]).then(([profileData, historyData]) => {
+      setProfile(profileData);
+      if (Array.isArray(historyData) && historyData.length > 0) {
+        setHasHistory(true);
+        setMessages(historyData.map((m: any) => ({
+          role: m.role,
+          content: m.content,
+          fromHistory: true,
+        })));
+      }
+    }).catch(() => {
+      const saved2 = sessionStorage.getItem('student_profile');
+      const s2 = saved2 ? JSON.parse(saved2) : null;
+      if (s2) setProfile(s2);
+    }).finally(() => setHistoryLoading(false));
   }, [studentId]);
 
   useEffect(() => {
@@ -56,7 +78,8 @@ export default function AdvisorPage() {
       alert('Please upload a PDF file');
       return;
     }
-    const sid = studentId || profile?.id;
+    const saved = sessionStorage.getItem('student_profile');
+    const sid = studentId || (saved ? JSON.parse(saved)?.id : null);
     if (!sid) { alert('No student selected'); return; }
 
     setResumeUploading(true);
@@ -68,16 +91,16 @@ export default function AdvisorPage() {
         reader.readAsDataURL(file);
       });
 
-      const res = await fetchWithAuth(`/api/academic/upload-resume/${sid}`, {
+      await fetchWithAuth(`/api/academic/upload-resume/${sid}`, {
         method: 'POST',
         body: JSON.stringify({ pdf_base64: base64 }),
       });
-      const data = await res.json();
+
       setResumeUploaded(true);
       setResumeName(file.name);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `I've stored and indexed your resume "${file.name}" (${data.chunks} sections, ${data.words} words). I can now search through it to answer questions about your skills, experience, and career readiness. Try asking me to compare your resume with your career goal or identify skill gaps.`
+        content: `I've stored and indexed your resume "${file.name}" using TF-IDF semantic search. I can now search through it to answer questions about your skills, experience, and career readiness. Try asking me to compare your resume with your career goal or identify skill gaps.`
       }]);
     } catch (e) {
       alert('Failed to upload resume. Please try again.');
@@ -89,7 +112,8 @@ export default function AdvisorPage() {
   async function sendMessage(text: string) {
     const msg = text || input;
     if (!msg.trim()) return;
-    const sid = studentId || profile?.id;
+    const saved = sessionStorage.getItem('student_profile');
+    const sid = studentId || (saved ? JSON.parse(saved)?.id : null);
     if (!sid) return;
 
     const newMessages = [...messages, { role: 'user', content: msg }];
@@ -98,10 +122,23 @@ export default function AdvisorPage() {
     setLoading(true);
 
     try {
+      // Include last 6 history messages for continuity
+      const historyContext = messages
+        .filter(m => m.fromHistory)
+        .slice(-6)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const currentMessages = newMessages
+        .filter(m => !m.fromHistory)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      // Send history + current conversation so AI remembers previous discussions
+      const messagesToSend = [...historyContext, ...currentMessages];
+
       const res = await fetchWithAuth('/api/academic/chat', {
         method: 'POST',
         body: JSON.stringify({
-          messages: newMessages,
+          messages: messagesToSend,
           student_id: parseInt(String(sid)),
         }),
       });
@@ -117,7 +154,20 @@ export default function AdvisorPage() {
     }
   }
 
-  const sid = studentId || profile?.id;
+  const saved = typeof window !== 'undefined' ? sessionStorage.getItem('student_profile') : null;
+  const sid = studentId || (saved ? JSON.parse(saved)?.id : null);
+  const newMessages = messages.filter(m => !m.fromHistory);
+
+  if (historyLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+        <div className="text-center space-y-3">
+          <div className="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 text-sm">Loading your conversation history...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden m-4">
@@ -132,9 +182,10 @@ export default function AdvisorPage() {
         </div>
         <div className="flex items-center gap-2">
           {resumeUploaded && (
-            <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
-              📄 Resume indexed
-            </span>
+            <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">📄 Resume indexed</span>
+          )}
+          {hasHistory && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">🧠 Memory loaded</span>
           )}
           {profile?.is_at_risk && (
             <span className="text-xs font-bold bg-red-100 text-red-700 px-3 py-1 rounded-full">⚠️ At Risk</span>
@@ -143,20 +194,68 @@ export default function AdvisorPage() {
       </div>
 
       {/* Agent notice */}
-      <div className="px-4 py-2 bg-indigo-50 border-b border-indigo-100">
+      <div className="px-4 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between">
         <p className="text-xs text-indigo-600 font-medium">
-          🤖 Agentic mode — the advisor uses tools to look up your live data before every response
+          🤖 Agentic mode — uses tools to fetch live data • TF-IDF resume search • persistent memory
         </p>
+        {hasHistory && (
+          <button
+            onClick={() => { setMessages([]); setHasHistory(false); }}
+            className="text-xs text-indigo-400 hover:text-indigo-600 underline"
+          >
+            Clear history
+          </button>
+        )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30">
-        {messages.length === 0 && (
+
+        {/* History section */}
+        {hasHistory && messages.some(m => m.fromHistory) && (
+          <>
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-slate-200"></div>
+              <span className="text-xs text-slate-400 whitespace-nowrap">— Previous conversations —</span>
+              <div className="flex-1 h-px bg-slate-200"></div>
+            </div>
+            {messages.filter(m => m.fromHistory).map((m, i) => (
+              <div key={`history-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {m.role === 'assistant' && (
+                  <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center text-sm mr-2 mt-1 shrink-0 opacity-60">🤖</div>
+                )}
+                <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed opacity-70 ${
+                  m.role === 'user'
+                    ? 'bg-indigo-400 text-white rounded-tr-none'
+                    : 'bg-white text-slate-600 border border-slate-100 rounded-tl-none'
+                }`}>
+                  {m.role === 'user' ? (
+                    <p className="whitespace-pre-wrap">{m.content}</p>
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
+                  )}
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-indigo-200"></div>
+              <span className="text-xs text-indigo-400 whitespace-nowrap">— New conversation —</span>
+              <div className="flex-1 h-px bg-indigo-200"></div>
+            </div>
+          </>
+        )}
+
+        {/* Empty state */}
+        {newMessages.length === 0 && (
           <div className="text-center py-8 space-y-6">
             <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-3xl mx-auto">👋</div>
             <div>
-              <h3 className="text-lg font-bold text-slate-700">How can I help you today?</h3>
-              <p className="text-slate-400 text-sm mt-1">I'll look up your live academic data before answering</p>
+              <h3 className="text-lg font-bold text-slate-700">
+                {hasHistory ? 'Continue where you left off' : 'How can I help you today?'}
+              </h3>
+              <p className="text-slate-400 text-sm mt-1">
+                {hasHistory ? 'The advisor remembers your previous conversations' : "I'll look up your live academic data before answering"}
+              </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-xl mx-auto">
               {suggestions.map((s) => (
@@ -176,8 +275,9 @@ export default function AdvisorPage() {
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+        {/* New messages */}
+        {newMessages.map((m, i) => (
+          <div key={`new-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.role === 'assistant' && (
               <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center text-sm mr-2 mt-1 shrink-0">🤖</div>
             )}

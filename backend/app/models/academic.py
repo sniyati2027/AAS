@@ -1,6 +1,7 @@
-from sqlalchemy import String, Integer, Float, Boolean, ForeignKey, Text
+from sqlalchemy import String, Integer, Float, Boolean, ForeignKey, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List, Optional
+from datetime import datetime, timezone
 from app.core.database import Base
 
 
@@ -47,6 +48,9 @@ class StudentProfile(Base):
     resume_chunks: Mapped[List["ResumeChunk"]] = relationship(
         "ResumeChunk", back_populates="student", cascade="all, delete-orphan"
     )
+    chat_messages: Mapped[List["ChatMessage"]] = relationship(
+        "ChatMessage", back_populates="student", cascade="all, delete-orphan"
+    )
 
 
 class CourseEnrollment(Base):
@@ -67,4 +71,19 @@ class ResumeChunk(Base):
     student_id: Mapped[int] = mapped_column(ForeignKey("student_profiles.id"), nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # TF-IDF vector stored as JSON string
+    tfidf_vector: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     student: Mapped["StudentProfile"] = relationship("StudentProfile", back_populates="resume_chunks")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("student_profiles.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)  # user or assistant
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc)
+    )
+    student: Mapped["StudentProfile"] = relationship("StudentProfile", back_populates="chat_messages")
