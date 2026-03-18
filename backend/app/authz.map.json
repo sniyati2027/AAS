@@ -1,65 +1,16 @@
 {
-  "/api/users/me": {
-    "GET": ["ADMIN", "DEVELOPER", "USER"]
-  },
-  "/api/users": {
-    "GET": ["ADMIN"],
-    "POST": ["ADMIN"]
-  },
-  "/api/users/{id}": {
-    "GET": ["ADMIN"],
-    "PUT": ["ADMIN"],
-    "DELETE": ["ADMIN"]
-  },
-  "/api/admin/users": {
-    "GET": ["ADMIN"]
-  },
-  "/api/admin/users/pending": {
-    "GET": ["ADMIN"]
-  },
-  "/api/admin/users/{id}/approve": {
-    "POST": ["ADMIN"]
-  },
-  "/api/admin/users/{id}/reject": {
-    "POST": ["ADMIN"]
-  },
-  "/api/admin/audit": {
-    "GET": ["ADMIN"]
-  },
-  "/api/admin/audit/export": {
-    "GET": ["ADMIN"]
-  },
-  "/api/agents": {
-    "GET": ["ADMIN", "DEVELOPER"],
-    "POST": ["ADMIN", "DEVELOPER"]
-  },
-  "/api/agents/{id}": {
-    "GET": ["ADMIN", "DEVELOPER"],
-    "PUT": ["ADMIN", "DEVELOPER"],
-    "DELETE": ["ADMIN"]
-  },
-  "/api/telemetry": {
-    "POST": ["ADMIN", "DEVELOPER", "USER"]
-  },
-  "/api/ai/policies": {
-    "GET": ["ADMIN", "DEVELOPER", "USER"],
-    "POST": ["ADMIN", "DEVELOPER"]
-  },
-  "/api/ai/policies/{id}": {
-    "GET": ["ADMIN", "DEVELOPER", "USER"],
-    "PUT": ["ADMIN", "DEVELOPER"],
-    "DELETE": ["ADMIN"]
-  },
-  "/api/ai/policies/{id}/translate": {
-    "POST": ["ADMIN", "DEVELOPER"]
-  },
-  "/api/ai/insights": {
-    "GET": ["ADMIN", "DEVELOPER", "USER"]
-  },
-  "/api/ai/insights/generate": {
-    "POST": ["ADMIN", "DEVELOPER"]
-  },
-  "/api/ai/chat": {
-    "POST": ["ADMIN", "DEVELOPER", "USER"]
-  }
+  "/api/users/me": { "GET": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/admin/users": { "GET": ["ADMIN"], "PATCH": ["ADMIN"] },
+  "/api/admin/audit": { "GET": ["ADMIN"] },
+  "/api/ai/policies": { "GET": ["ADMIN", "DEVELOPER"], "POST": ["ADMIN", "DEVELOPER"] },
+  "/api/ai/insights": { "GET": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/ai/chat": { "POST": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/agents": { "GET": ["ADMIN", "DEVELOPER"], "POST": ["ADMIN", "DEVELOPER"] },
+  "/api/academic/students": { "GET": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/academic/profile/{student_id}": { "GET": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/academic/recommendations/{student_id}": { "GET": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/academic/career-path/{student_id}": { "GET": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/academic/chat": { "POST": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/academic/seed": { "POST": ["ADMIN", "DEVELOPER", "USER"] },
+  "/api/academic/upload-resume/{student_id}": { "POST": ["ADMIN", "DEVELOPER", "USER"] }
 }

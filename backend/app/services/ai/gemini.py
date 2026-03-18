@@ -59,10 +59,10 @@ class GeminiClient:
             raise ValueError("Gemini API key not configured")
 
         model_config = {"model_name": settings.ai_model}
-        
+
         if system_instruction:
             model_config["system_instruction"] = system_instruction
-            
+
         if tools:
             model_config["tools"] = tools
 
@@ -73,7 +73,7 @@ class GeminiClient:
             await chat.send_message_async(msg["content"])
 
         response = await chat.send_message_async(messages[-1]["content"])
-        
+
         result = {
             "content": response.text if response.text else "",
             "function_calls": [],
