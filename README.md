@@ -1,388 +1,254 @@
-# Atlas AI Command Center - Full-Stack Template
+# Atlas AI Command Centre — Smart Academic Advisor
 
-A production-ready template for building modern, AI-first web applications with Python/FastAPI backend, Next.js/React frontend, Keycloak for identity management, and integrated AI features (Gemini).
-
----
-
-## 🚨 For New Client Projects - Read This First!
-
-When starting a new project from this template, understand what's real functionality vs demo/placeholder:
-
-### What's Real (Production-Ready)
-
-| Component | Description |
-|-----------|-------------|
-| **Authentication** | Credentials-based login with NextAuth.js; optional OAuth2/OIDC with Keycloak |
-| **Authorization Engine** | JSON-based RBAC via `authz.map.json` and `authz.py` |
-| **User Registration** | Self-registration with domain-based auto-approval or admin approval |
-| **Admin User Management** | `/admin/users` - Approve/reject pending users |
-| **Audit Logging** | `/admin/audit` - Automatic request logging + custom events with export |
-| **AI Policies** | `/ai/policies` - Natural language rule engine with DSL translation |
-| **AI Insights** | `/ai/insights` - Proactive analysis and recommendations |
-| **AI Manager** | Global chatbot modal - Agentic assistant with tool execution |
-| **Database Setup** | PostgreSQL with Alembic migrations |
-| **API Structure** | FastAPI with dependency injection |
-| **Session Management** | NextAuth.js with JWT token handling |
-| **Agents & Telemetry** | Agent registry and telemetry API endpoints |
-
-### What's Demo (Replace for Production)
-
-| Page | Location | Action Required |
-|------|----------|-----------------|
-| **Dashboard** | `/` (page.tsx) | Replace mock stats with real data |
-| **Settings** | `/settings` | Implement real settings functionality |
-| **AI Manager tools** | Backend `services/ai/tools.py` | Wire to real system APIs |
+A university AI platform built on the Atlas AI Command Centre template. Students get personalised course recommendations, career path projections, and an agentic AI advisor that reasons over their live academic data. Supports resume upload with RAG-based analysis.
 
 ---
 
-## ✨ Core Features
+## 🎓 What Was Built
 
-- **Production-Ready Stack**: FastAPI, Next.js, PostgreSQL, and Keycloak (optional)
-- **AI Integration**: Policies, Insights, and AI Manager with Gemini
-- **Pluggable Authorization Engine**: Endpoint-level access control in JSON
-- **User Self-Registration**: With domain-based auto-approval or admin approval
-- **Comprehensive Audit Logging**: Automatic request logging + custom business events
-- **Fully Containerized**: Docker and Docker Compose
-- **Cloud-Ready**: Structure supports deployment to Google Cloud Run with Cloud SQL
+The **Smart Academic Advisor** is an AI agent added on top of the Atlas template. It is fully agentic — the AI has tools it calls itself to fetch live data from the database before answering. Nothing is hardcoded or pre-loaded into the AI.
+
+### How It Works
+
+When a student asks a question in the chat:
+1. The AI reads the question
+2. It **decides** which tools to call — `get_student_profile`, `get_available_courses`, `search_resume`, `get_career_info`
+3. Tools fetch live data from PostgreSQL
+4. The AI reasons over the results and gives a personalised answer
+
+When a student uploads a resume:
+1. PDF text is extracted and split into 300-word chunks
+2. Chunks are stored in the `resume_chunks` table in PostgreSQL
+3. When the student asks about their resume, the AI calls `search_resume`
+4. Relevant chunks are retrieved and the AI reasons over them — this is RAG
 
 ---
 
-## 💻 Technology Stack
+## ✨ Features
 
-| Area | Technology | Purpose |
-|------|------------|---------|
-| Backend | Python 3.11 + FastAPI | High-performance API |
-| Frontend | Next.js 14+ + React + TypeScript | Modern UI framework |
-| AI | Gemini API | Policies, Insights, Chatbot |
-| Identity | Keycloak 24 (optional) | Centralized IAM; local JWT also supported |
-| Database | PostgreSQL 15 | Application data |
-| DevOps | Docker + Docker Compose | Containerization |
+| Feature | Description |
+|---|---|
+| **Agentic Chat** | AI calls tools to fetch live data — never pre-loaded |
+| **Course Recommendations** | AI recommends next semester courses based on actual profile |
+| **Career Path** | AI generates career roadmap with skill gaps and action steps |
+| **Resume RAG** | Upload a PDF resume, AI stores and retrieves chunks intelligently |
+| **Student Login** | Students log in with university email and password |
+| **Admin View** | Staff can select any student and view their full profile |
+| **At-Risk Detection** | Students with CGPA below 6 or 3+ backlogs are automatically flagged |
+| **Audit Logging** | All API requests are automatically logged |
+| **AI Policies** | Natural language rule engine (from base template) |
+| **AI Insights** | Proactive system analysis (from base template) |
 
 ---
 
 ## 🚀 Quick Start
 
-Get the Atlas AI Command Center running locally in under 5 minutes.
-
 ### Prerequisites
 
-| Tool | Required | Purpose |
-|------|----------|---------|
-| Docker Desktop | ✅ Yes | Runs all services |
-| make | ✅ Yes | Dev commands (built-in on macOS/Linux; use WSL or Git Bash on Windows) |
-| Google Cloud SDK | ❌ Optional | For cloud deployment |
+| Tool | Required |
+|---|---|
+| Docker Desktop | ✅ Yes |
+| Groq API Key (free) | ✅ Yes — get one at [console.groq.com](https://console.groq.com) |
 
-### Step 1: Clone & Setup
+### Step 1 — Clone and set up
 
 ```bash
-git clone https://github.com/your-org/your-repo.git
-cd your-repo
-
-# Create your environment file
+git clone <your-repo-url>
+cd AAS
 cp .env.example .env
 ```
 
-### Step 2: Configure Secrets
+### Step 2 — Add your Groq API key
 
-Edit `.env` and set these required values:
+Open `.env` and set:
 
-```bash
-# REQUIRED: Generate and paste this secret
-openssl rand -base64 32
-# Copy the output and set: NEXTAUTH_SECRET=<paste-here>
-# Also set: SECRET_KEY=<paste-here> (can be same or different)
+```
+GROQ_API_KEY=your_groq_key_here
 ```
 
-**OPTIONAL but RECOMMENDED**: Enable AI features
-
-- Get your API key from: https://aistudio.google.com/apikey  
-- Set in `.env`: `GEMINI_API_KEY=your-api-key-here`
-
-### Step 3: Start Everything
+### Step 3 — Start everything
 
 ```bash
-make up
+docker compose up --build
 ```
 
-This starts PostgreSQL, Keycloak (optional), Backend (FastAPI), and Frontend (Next.js).
+Wait for:
+```
+backend  | Application startup complete
+frontend | Ready in Xs
+```
 
-### Step 4: Access the App
+### Step 4 — Open the app
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| 🌐 Frontend | http://localhost:3000 | Main application |
-| 📡 Backend API | http://localhost:8000/docs | Swagger API docs |
-| 🔐 Keycloak Admin | http://localhost:8080 | Identity management (if enabled) |
+| Service | URL |
+|---|---|
+| 🌐 App | http://localhost:3000 |
+| 📡 API Docs | http://localhost:8000/docs |
 
-**Default admin login** (after running migrations):
+### Step 5 — Seed the database
 
-- Email: `admin@atlasuniversity.edu.in`  
-- Password: `admin123`
+Go to `http://localhost:3000/academic` and click **Seed Database**.
 
-### Useful Commands
+This creates 60 students across 3 departments with realistic profiles, courses, and enrollments.
 
-| Command | Description |
-|---------|-------------|
-| `make up` | Start all services |
-| `make down` | Stop all services |
-| `make logs-be` | View backend logs |
-| `make logs-fe` | View frontend logs |
-| `make restart-be` | Restart backend only |
-| `make migrate-up` | Apply database migrations |
-| `make migrate-history` | View migration history |
+### Step 6 — Log in as a student
 
-### Troubleshooting Quick Start
+- Email: `au2022cse001@atlasuniversity.edu.in`
+- Password: `student123`
 
-| Issue | Solution |
-|-------|----------|
-| Port 3000/8000 in use | Stop other services or change ports in `.env` |
-| Login returns 401 | Ensure NEXTAUTH_SECRET is set; clear cookies or use incognito |
-| AI features not working | Check GEMINI_API_KEY is set in `.env` |
-| Containers won't start | Run `docker compose down -v` then `make up` |
+---
+
+## 💻 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.11 + FastAPI |
+| Frontend | Next.js 14 + React + TypeScript |
+| Database | PostgreSQL 15 |
+| AI | Groq API — LLaMA 3 (free tier) |
+| ORM | SQLAlchemy async |
+| Auth | JSON-based RBAC via authz.map.json |
+| Infrastructure | Docker + Docker Compose (5 containers) |
+
+---
+
+## 🤖 Agent Tools
+
+The AI has 4 tools. It decides when to call them based on the question.
+
+| Tool | What It Fetches |
+|---|---|
+| `get_student_profile` | CGPA, semester, department, all courses with grades, backlogs, career goal |
+| `get_available_courses` | Courses in student's department not yet completed |
+| `search_resume` | Relevant chunks from the student's stored resume |
+| `get_career_info` | Career path context based on goal and department |
+
+---
+
+## 🗄️ Database Schema
+
+| Table | What It Stores |
+|---|---|
+| `departments` | CSE, BBA, ISDI with HOD names |
+| `courses` | 12 courses with semester, credits, prerequisites, career tags |
+| `student_profiles` | CGPA, semester, backlogs, career goal, at-risk flag |
+| `course_enrollments` | Student-course links with grades and status |
+| `resume_chunks` | Chunked resume text per student for RAG retrieval |
+| `users` | Login credentials for all students and admin |
+| `audit_logs` | Automatic log of every API request |
+| `policies` | AI-generated access control policies |
+
+---
+
+## 📡 Academic API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/academic/students` | List all students |
+| GET | `/api/academic/profile/{id}` | Full student profile |
+| GET | `/api/academic/recommendations/{id}` | AI course recommendations |
+| GET | `/api/academic/career-path/{id}` | AI career path projection |
+| POST | `/api/academic/chat` | Agentic chat — AI calls tools internally |
+| POST | `/api/academic/student-login` | Login with email + password |
+| POST | `/api/academic/upload-resume/{id}` | Upload and chunk a resume PDF |
+| POST | `/api/academic/seed` | Seed demo data |
 
 ---
 
 ## 📂 Project Structure
 
 ```
-.
-├── backend/                    # FastAPI Backend
+AAS/
+├── backend/
 │   ├── app/
-│   │   ├── main.py             # API routes and app bootstrap
-│   │   ├── authz.map.json     # Authorization rules (EDIT THIS)
-│   │   ├── public.map.json    # Public endpoints list
-│   │   ├── core/
-│   │   │   ├── authz.py       # Authorization engine
-│   │   │   ├── config.py      # Settings
-│   │   │   ├── database.py    # DB connection
-│   │   │   └── security.py    # JWT / password hashing
 │   │   ├── api/
-│   │   │   ├── auth.py        # Login / register
-│   │   │   ├── users.py       # /users/me
-│   │   │   ├── admin.py       # Admin users & audit
-│   │   │   ├── ai.py          # AI endpoints (policies, insights, chat)
-│   │   │   ├── agents.py      # Agent registry
-│   │   │   └── telemetry.py   # Telemetry
-│   │   ├── models/            # SQLAlchemy ORM models
-│   │   ├── schemas/           # Pydantic schemas
-│   │   ├── services/
-│   │   │   ├── audit.py       # Audit logging service
-│   │   │   ├── keycloak.py    # Keycloak JWT validation
-│   │   │   ├── keycloak_admin.py  # Keycloak Admin API
-│   │   │   └── ai/            # AI services
-│   │   │       ├── chat.py    # AI Manager chat logic
-│   │   │       ├── gemini.py  # Gemini API client
-│   │   │       ├── policy.py  # Policy translation
-│   │   │       ├── insights.py # Insights generation
-│   │   │       └── tools.py   # AI function tools
-│   │   └── middleware/
-│   │       └── audit.py       # Request audit middleware
-│   ├── alembic/               # Database migrations
-│   ├── Dockerfile
+│   │   │   ├── academic.py        ← Academic advisor agent + all endpoints
+│   │   │   ├── ai.py              ← AI policies, insights, chat (template)
+│   │   │   ├── admin.py           ← User management, audit logs (template)
+│   │   │   └── auth.py            ← Login / register (template)
+│   │   ├── models/
+│   │   │   ├── academic.py        ← Department, Course, Student, Enrollment, ResumeChunk
+│   │   │   └── user.py            ← User model (template)
+│   │   ├── schemas/
+│   │   │   └── academic_schema.py ← Request/response models
+│   │   ├── services/ai/
+│   │   │   └── gemini.py          ← AI service client (template)
+│   │   ├── authz.map.json         ← Role-based access control rules
+│   │   └── main.py                ← FastAPI app bootstrap
 │   └── requirements.txt
 │
-├── frontend/                  # Next.js Frontend
+├── frontend/
 │   └── src/
-│       ├── app/
-│       │   ├── (dashboard)/    # Protected dashboard pages
-│       │   ├── admin/         # Admin pages (users, audit)
-│       │   ├── ai/            # AI pages (policies, insights)
-│       │   └── auth/          # Login, register, error
-│       ├── components/
-│       │   ├── ai/            # AIManager chatbot
-│       │   ├── auth/          # AuthProvider
-│       │   └── layout/        # Header, Sidebar
-│       ├── lib/               # api.ts, store, utils
-│       ├── middleware.ts     # Auth middleware
-│       └── types/            # next-auth.d.ts
+│       ├── app/(dashboard)/
+│       │   └── academic/
+│       │       ├── page.tsx        ← Student dashboard + login
+│       │       └── advisor/
+│       │           └── page.tsx    ← Agentic chat + resume upload
+│       └── components/layout/
+│           └── Sidebar.tsx         ← Navigation
 │
-├── docker-compose.yml         # Local development
-├── Makefile                   # Dev commands
-├── .env.example               # Environment template
-└── README.md                  # This file
+├── docker-compose.yml
+├── .env.example
+└── README.md
 ```
 
 ---
 
 ## 📝 Environment Variables
 
-The `.env` file is organized into Backend and Frontend sections.
-
-### Backend Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| APP_ENV | development | Environment: development or production |
-| LOG_LEVEL | INFO | Logging level: DEBUG, INFO, WARNING, ERROR |
-| DATABASE_URL | (composed) | PostgreSQL connection string |
-| SECRET_KEY | (required) | JWT signing key; use `openssl rand -base64 32` |
-| STORAGE_BACKEND | local | File storage: local or gcs |
-| GEMINI_API_KEY | (empty) | API key for AI features |
-| AI_MODEL | gemini-2.0-flash-exp | AI model name |
-| APPROVED_EMAIL_DOMAINS | atlasuniversity.edu.in | Comma-separated domains for auto-approval |
-| KEYCLOAK_* | (empty) | Keycloak URL, realm, client ID/secret if using Keycloak |
-
-### Frontend Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| NODE_ENV | development | Next.js environment mode |
-| FRONTEND_TARGET | dev | Docker build target: dev or prod |
-| NEXT_PUBLIC_API_URL | http://localhost:8000 | Backend API URL (browser) |
-| NEXT_PUBLIC_BASE_PATH | (empty) | Base path for reverse proxy |
-| NEXTAUTH_SECRET | (required) | Secret for NextAuth.js; use `openssl rand -base64 32` |
-| NEXTAUTH_URL | http://localhost:3000 | App URL for NextAuth |
-
-### Ports (optional overrides)
-
-| Variable | Default |
-|----------|---------|
-| FRONTEND_PORT | 3000 |
-| BACKEND_PORT | 8000 |
-| DB_PORT | 5432 |
-| KEYCLOAK_PORT | 8080 |
+| Variable | Required | Description |
+|---|---|---|
+| `GROQ_API_KEY` | ✅ Yes | Free API key from console.groq.com |
+| `SECRET_KEY` | ✅ Yes | JWT signing key |
+| `NEXTAUTH_SECRET` | ✅ Yes | NextAuth session secret |
+| `DATABASE_URL` | Auto | Set by docker-compose |
+| `GROQ_MODEL` | Optional | Default: `llama-3.1-8b-instant` |
+| `GEMINI_API_KEY` | Optional | For template AI features (policies, insights) |
 
 ---
 
-## 🤖 AI Features
+## 🎓 Demo Data
 
-### AI Policies (`/ai/policies`)
+The seed creates:
 
-Define business rules in natural language. The AI translates them into executable logic.
+**3 Departments:**
+- CSE — Computer Science and Engineering
+- BBA — Bachelor of Business Administration
+- ISDI — Institute of Design
 
-- Natural language rule input  
-- Automatic translation to logical DSL  
-- Support for both logical (DSL) and natural language policies  
-- Policy hierarchy with priority ordering  
-- Conflict detection and validation  
+**12 Courses:**
 
-### AI Insights (`/ai/insights`)
+| Department | Courses |
+|---|---|
+| CSE | Advanced Algorithms, Statistics for Computing, Mobile & Cloud Systems, Cybersecurity Fundamentals |
+| BBA | Financial Accounting, Marketing Management, Organisational Behaviour, Business Strategy & Analytics |
+| ISDI | Typography & Visual Communication, Motion Graphics & Animation, UX Design & Research, Design Thinking & Innovation |
 
-Proactive analysis and recommendations based on system data.
-
-- Automated pattern detection  
-- Anomaly identification  
-- Severity-based prioritization (Critical, Warning, Recommendation)  
-- Suggested actions with estimated impact  
-
-### AI Manager (Global Chatbot)
-
-Accessible from any page via the header (🤖 button). Opens as a centered modal with blurred backdrop.
-
-- Context-aware (knows current page)  
-- Tool execution (function calling)  
-- Markdown rendering in responses  
-- Keyboard shortcut: Enter to send  
+**60 Students** with realistic CGPAs, random semesters (2–8), varied backlogs, and course enrollment history.
 
 ---
 
-## 🛠️ Make Commands
+## ⚠️ Troubleshooting
 
-| Command | Description |
-|---------|-------------|
-| make up | Start all services |
-| make down | Stop all services |
-| make logs | View all logs |
-| make logs-be | View backend logs |
-| make logs-fe | View frontend logs |
-| make logs-keycloak | View Keycloak logs |
-| make restart-be | Restart backend |
-| make restart-fe | Restart frontend |
-| make format | Format all code |
-| make lint | Lint all code |
-| make test-be | Run backend tests |
-| make migrate-up | Apply database migrations |
-| make migrate-down | Rollback one migration |
-| make migrate-create MSG='...' | Create new migration |
-| make migrate-history | View migration history |
-| make shell-be | Open backend shell |
-| make shell-fe | Open frontend shell |
-| make shell-db | Open database shell (psql) |
-| make clean | Stop and remove volumes |
+| Problem | Fix |
+|---|---|
+| Backend container not starting | Run `docker compose logs backend` to see the error |
+| Seeding failed | Backend may have crashed — check logs |
+| AI not responding | Check `GROQ_API_KEY` is set correctly in `.env` |
+| Port already in use | Run `docker stop $(docker ps -aq)` then `docker compose up --build` |
+| Student login failing | Make sure you seeded the database first |
+| Frontend not updating | Run `docker compose down` then `docker compose up --build` |
 
 ---
 
-## 🗄️ Database Migrations
+## 🏗️ Built On
 
-Alembic migrations manage schema. Apply them after starting the stack:
-
-```bash
-# View current migration status
-make migrate-history
-
-# Create a new migration (from repo root)
-make migrate-create MSG='add_new_table'
-
-# Apply pending migrations
-make migrate-up
-
-# Rollback one migration
-make migrate-down
-```
-
----
-
-## 🔐 Authentication & Authorization
-
-### How It Works
-
-1. User clicks "Sign In" → Login page (credentials) or redirect to Keycloak if configured  
-2. Backend validates credentials → Returns JWT to frontend  
-3. Frontend stores token → NextAuth.js manages session  
-4. API calls include token → Backend validates JWT  
-5. Authorization engine checks → Rules in `authz.map.json`  
-
-### Adding Protected Endpoints
-
-In `backend/app/authz.map.json`:
-
-```json
-{
-  "/api/my-endpoint": {
-    "GET": ["ADMIN", "USER"],
-    "POST": ["ADMIN"]
-  }
-}
-```
-
-In `backend/app/public.map.json` add paths that require no auth (e.g. `/health`, `/api/auth/login`).
-
-### Adding Custom Audit Logs
-
-```python
-from app.services.audit import audit
-
-await audit.log_user_action(
-    db=db,
-    action="user.approve",
-    actor=current_user,
-    target_user_id=user_id,
-    target_user_email="john@example.com",
-)
-```
-
----
-
-## ⚠️ Common Issues
-
-| Problem | Solution |
-|---------|----------|
-| "OAuth error" or 401 when logging in | Clear cookies or use incognito; ensure NEXTAUTH_SECRET is set |
-| API returns 401 | Check Authorization header is sent; token may be expired |
-| AI features not working | Set GEMINI_API_KEY in `.env`; demo data loads without key |
-| Frontend not updating after code changes | If using FRONTEND_TARGET=prod, rebuild: `docker compose build frontend` |
-| Port already in use | Change FRONTEND_PORT / BACKEND_PORT in `.env` and restart |
-
----
-
-## 🏁 Checklist for New Projects
-
-- [ ] Clone template and rename repository  
-- [ ] Update `.env` with new secrets (especially NEXTAUTH_SECRET and SECRET_KEY)  
-- [ ] Add GEMINI_API_KEY for AI features  
-- [ ] Update branding (logo, colors, company name)  
-- [ ] Configure APPROVED_EMAIL_DOMAINS  
-- [ ] Replace demo pages (Dashboard, Settings) with real data  
-- [ ] Customize `authz.map.json` for your roles and endpoints  
-- [ ] Change default admin password  
-- [ ] Update this README for your project  
+This project is built on the **Atlas AI Command Centre** template which provides:
+- FastAPI backend with async SQLAlchemy
+- Next.js frontend with TypeScript
+- PostgreSQL with automatic table creation
+- JSON-based RBAC authorization engine
+- Automatic audit logging middleware
+- Docker Compose with 5 containers
+- AI Manager global chatbot
+- AI Policies and Insights pages
